@@ -12,19 +12,16 @@ import (
 	"github.com/flamego/flamego"
 )
 
-// User is the authenticated username that was extracted from the request.
-type User string
-
 const basicPrefix = "Basic "
 
 // Basic returns a middleware handler that injects auth.User into the request
-// context upon successful authentication. The handler responds
+// context upon successful basic authentication. The handler responds
 // http.StatusUnauthorized when authentication fails.
 func Basic(username, password string) flamego.Handler {
 	want := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
 	return flamego.ContextInvoker(func(c flamego.Context) {
 		got := c.Request().Header.Get("Authorization")
-		if !SecureCompare(got, basicPrefix+want) {
+		if !SecureCompare(basicPrefix+want, got) {
 			basicUnauthorized(c.ResponseWriter())
 			return
 		}
@@ -33,8 +30,9 @@ func Basic(username, password string) flamego.Handler {
 }
 
 // BasicFunc returns a middleware handler that injects auth.User into the
-// request context upon successful authentication with the given function. The
-// function should return true for a valid username and password combination.
+// request context upon successful basic authentication with the given function.
+// The function should return true for a valid username and password
+// combination.
 func BasicFunc(fn func(username, password string) bool) flamego.Handler {
 	return flamego.ContextInvoker(func(c flamego.Context) {
 		auth := c.Request().Header.Get("Authorization")
