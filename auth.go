@@ -9,6 +9,9 @@ import (
 	"crypto/subtle"
 )
 
+// User is the authenticated username that was extracted from the request.
+type User string
+
 // SecureCompare performs a constant time compare of two strings to prevent
 // timing attacks.
 func SecureCompare(given, actual string) bool {

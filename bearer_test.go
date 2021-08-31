@@ -6,49 +6,42 @@ package auth
 
 import (
 	"bytes"
-	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/flamego/flamego"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestBasic(t *testing.T) {
+func TestBearer(t *testing.T) {
 	tests := []struct {
 		name     string
-		username string
-		password string
+		token    string
 		wantCode int
 	}{
 		{
 			name:     "good",
-			username: "foo",
-			password: "bar",
+			token:    "foo",
 			wantCode: http.StatusOK,
 		},
 		{
 			name:     "bad",
-			username: "bar",
-			password: "foo",
+			token:    "bar",
 			wantCode: http.StatusUnauthorized,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			f := flamego.NewWithLogger(&bytes.Buffer{})
-			f.Use(Basic("foo", "bar"))
+			f.Use(Bearer("foo"))
 			f.Get("/", func() {})
 
 			resp := httptest.NewRecorder()
 			req, err := http.NewRequest(http.MethodGet, "/", nil)
 			assert.Nil(t, err)
 
-			auth := strings.Join([]string{test.username, test.password}, ":")
-			req.Header.Set("Authorization", basicPrefix+base64.StdEncoding.EncodeToString([]byte(auth)))
+			req.Header.Set("Authorization", bearerPrefix+test.token)
 			f.ServeHTTP(resp, req)
 
 			assert.Equal(t, test.wantCode, resp.Code)
@@ -56,7 +49,7 @@ func TestBasic(t *testing.T) {
 	}
 }
 
-func TestBasicFunc(t *testing.T) {
+func TestBearerFunc(t *testing.T) {
 	tests := []struct {
 		name     string
 		header   string
@@ -64,35 +57,30 @@ func TestBasicFunc(t *testing.T) {
 	}{
 		{
 			name:     "primary password",
-			header:   basicPrefix + "Zm9vOmJhcg==", // foo:bar
+			header:   bearerPrefix + "foo",
 			wantCode: http.StatusOK,
 		},
 		{
 			name:     "secondary password",
-			header:   basicPrefix + "Zm9vOmJheg==", // foo:baz
+			header:   bearerPrefix + "bar",
 			wantCode: http.StatusOK,
 		},
 		{
 			name:     "wrong password",
-			header:   basicPrefix + "Zm9vOm5vcGU=", // foo:nope
+			header:   bearerPrefix + "nope",
 			wantCode: http.StatusUnauthorized,
 		},
 		{
 			name:     "bad prefix",
-			header:   "Zm9vOmJheg==", // foo:baz
-			wantCode: http.StatusUnauthorized,
-		},
-		{
-			name:     "bad encoding",
-			header:   basicPrefix + "Zm9vOm5",
+			header:   "foo",
 			wantCode: http.StatusUnauthorized,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			f := flamego.NewWithLogger(&bytes.Buffer{})
-			f.Use(BasicFunc(func(username, password string) bool {
-				return username == "foo" && (password == "bar" || password == "baz")
+			f.Use(BearerFunc(func(token string) bool {
+				return token == "foo" || token == "bar"
 			}))
 			f.Get("/", func() {})
 
