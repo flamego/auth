@@ -12,6 +12,7 @@ import (
 
 	"github.com/flamego/flamego"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBearer(t *testing.T) {
@@ -19,32 +20,38 @@ func TestBearer(t *testing.T) {
 		name     string
 		token    string
 		wantCode int
+		wantBody string
 	}{
 		{
 			name:     "good",
 			token:    "foo",
 			wantCode: http.StatusOK,
+			wantBody: "foo",
 		},
 		{
 			name:     "bad",
 			token:    "bar",
 			wantCode: http.StatusUnauthorized,
+			wantBody: "Unauthorized\n",
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			f := flamego.NewWithLogger(&bytes.Buffer{})
 			f.Use(Bearer("foo"))
-			f.Get("/", func() {})
+			f.Get("/", func(token Token) string {
+				return string(token)
+			})
 
 			resp := httptest.NewRecorder()
 			req, err := http.NewRequest(http.MethodGet, "/", nil)
-			assert.Nil(t, err)
+			require.NoError(t, err)
 
 			req.Header.Set("Authorization", bearerPrefix+test.token)
 			f.ServeHTTP(resp, req)
 
 			assert.Equal(t, test.wantCode, resp.Code)
+			assert.Equal(t, test.wantBody, resp.Body.String())
 		})
 	}
 }
@@ -54,26 +61,31 @@ func TestBearerFunc(t *testing.T) {
 		name     string
 		header   string
 		wantCode int
+		wantBody string
 	}{
 		{
-			name:     "primary password",
+			name:     "primary token",
 			header:   bearerPrefix + "foo",
 			wantCode: http.StatusOK,
+			wantBody: "foo",
 		},
 		{
-			name:     "secondary password",
+			name:     "secondary token",
 			header:   bearerPrefix + "bar",
 			wantCode: http.StatusOK,
+			wantBody: "bar",
 		},
 		{
-			name:     "wrong password",
+			name:     "wrong token",
 			header:   bearerPrefix + "nope",
 			wantCode: http.StatusUnauthorized,
+			wantBody: "Unauthorized\n",
 		},
 		{
 			name:     "bad prefix",
 			header:   "foo",
 			wantCode: http.StatusUnauthorized,
+			wantBody: "Unauthorized\n",
 		},
 	}
 	for _, test := range tests {
@@ -82,16 +94,19 @@ func TestBearerFunc(t *testing.T) {
 			f.Use(BearerFunc(func(token string) bool {
 				return token == "foo" || token == "bar"
 			}))
-			f.Get("/", func() {})
+			f.Get("/", func(token Token) string {
+				return string(token)
+			})
 
 			resp := httptest.NewRecorder()
 			req, err := http.NewRequest(http.MethodGet, "/", nil)
-			assert.Nil(t, err)
+			require.NoError(t, err)
 
 			req.Header.Set("Authorization", test.header)
 			f.ServeHTTP(resp, req)
 
 			assert.Equal(t, test.wantCode, resp.Code)
+			assert.Equal(t, test.wantBody, resp.Body.String())
 		})
 	}
 }
