@@ -14,6 +14,9 @@ import (
 
 const basicPrefix = "Basic "
 
+// User is the authenticated username that was extracted from the request.
+type User string
+
 // Basic returns a middleware handler that injects auth.User into the request
 // context upon successful basic authentication. The handler responds
 // http.StatusUnauthorized when authentication fails.
