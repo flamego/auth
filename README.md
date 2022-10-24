@@ -9,7 +9,7 @@ Package auth is a middleware that provides request authentication for [Flamego](
 
 ## Installation
 
-The minimum requirement of Go is **1.16**.
+The minimum requirement of Go is **1.18**.
 
 	go get github.com/flamego/auth
 
