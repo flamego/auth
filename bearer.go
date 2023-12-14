@@ -15,7 +15,7 @@ var bearerPrefix = "Bearer "
 // Token is the authenticated token that was extracted from the request.
 type Token string
 
-// Bearer returns a middleware handler that injects auth.User (empty string)
+// Bearer returns a middleware handler that injects auth.Token
 // into the request context upon successful bearer authentication. The handler
 // responds http.StatusUnauthorized when authentication fails.
 func Bearer(token string) flamego.Handler {
@@ -29,7 +29,7 @@ func Bearer(token string) flamego.Handler {
 	})
 }
 
-// BearerFunc returns a middleware handler that injects auth.User (empty string)
+// BearerFunc returns a middleware handler that injects auth.Token
 // into the request context upon successful bearer authentication with the given
 // function. The function should return true for a valid bearer token.
 func BearerFunc(fn func(token string) bool) flamego.Handler {
